@@ -1,0 +1,18 @@
+stages:
+  - test
+  - build
+
+test:
+  stage: test
+  image: golang:1.17-alpine
+  script:
+    - CGO_ENABLED=0 go test ./...
+
+build:
+  stage: build
+  image: golang:1.17-alpine
+  script:
+    - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o nesting-darwin-arm64 ./cmd/nesting
+  artifacts:
+    paths:
+      - nesting-*
