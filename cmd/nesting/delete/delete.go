@@ -31,5 +31,8 @@ func (cmd *deleteCmd) Execute(ctx context.Context) error {
 		return err
 	}
 
-	return api.New(conn).Delete(ctx, cmd.fs.Args()[0])
+	client := api.New(conn)
+	defer client.Close()
+
+	return client.Delete(ctx, cmd.fs.Args()[0])
 }

@@ -28,7 +28,10 @@ func (cmd *listCmd) Execute(ctx context.Context) error {
 		return err
 	}
 
-	vms, err := api.New(conn).List(ctx)
+	client := api.New(conn)
+	defer client.Close()
+
+	vms, err := client.List(ctx)
 	if err != nil {
 		return err
 	}

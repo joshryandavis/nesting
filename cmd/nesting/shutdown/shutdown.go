@@ -30,7 +30,10 @@ func (cmd *shutdownCmd) Execute(ctx context.Context) error {
 		return err
 	}
 
-	err = api.New(conn).Shutdown(ctx)
+	client := api.New(conn)
+	defer client.Close()
+
+	err = client.Shutdown(ctx)
 	if err != nil {
 		return err
 	}

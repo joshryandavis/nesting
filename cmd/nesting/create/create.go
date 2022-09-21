@@ -32,7 +32,10 @@ func (cmd *createCmd) Execute(ctx context.Context) error {
 		return err
 	}
 
-	vm, err := api.New(conn).Create(ctx, cmd.fs.Args()[0])
+	client := api.New(conn)
+	defer client.Close()
+
+	vm, err := client.Create(ctx, cmd.fs.Args()[0])
 	if err != nil {
 		return err
 	}

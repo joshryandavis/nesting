@@ -12,11 +12,13 @@ import (
 )
 
 type Client struct {
+	conn   *grpc.ClientConn
 	client proto.NestingClient
 }
 
 func New(client *grpc.ClientConn) *Client {
 	return &Client{
+		conn:   client,
 		client: proto.NewNestingClient(client),
 	}
 }
@@ -71,4 +73,8 @@ func (c *Client) List(ctx context.Context) ([]hypervisor.VirtualMachine, error) 
 	}
 
 	return vms, nil
+}
+
+func (c *Client) Close() error {
+	return c.conn.Close()
 }

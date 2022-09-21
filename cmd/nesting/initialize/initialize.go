@@ -46,7 +46,10 @@ func (cmd *initializeCmd) Execute(ctx context.Context) error {
 		return err
 	}
 
-	err = api.New(conn).Init(ctx, config)
+	client := api.New(conn)
+	defer client.Close()
+
+	err = client.Init(ctx, config)
 	if err != nil {
 		return err
 	}
