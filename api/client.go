@@ -3,6 +3,9 @@ package api
 import (
 	"context"
 	"net"
+	"net/url"
+	"path/filepath"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,6 +19,8 @@ type Client struct {
 	client proto.NestingClient
 }
 
+type Dialer func(ctx context.Context, network, address string) (net.Conn, error)
+
 func New(client *grpc.ClientConn) *Client {
 	return &Client{
 		conn:   client,
@@ -24,13 +29,57 @@ func New(client *grpc.ClientConn) *Client {
 }
 
 func DefaultConn() (*grpc.ClientConn, error) {
-	return grpc.Dial(
-		"unix",
+	return NewClientConn("", nil)
+}
+
+func NewClientConn(target string, dialer Dialer) (*grpc.ClientConn, error) {
+	if target == "" {
+		target = socketPath()
+		if filepath.IsAbs(target) {
+			target = "unix://" + target
+		} else {
+			target = "unix:" + target
+		}
+	}
+
+	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(c context.Context, s string) (net.Conn, error) {
-			return net.Dial("unix", socketPath())
-		}),
-	)
+	}
+
+	if dialer != nil {
+		opts = append(opts, grpc.WithContextDialer(func(c context.Context, s string) (net.Conn, error) {
+			network, address := parseDialTarget(s)
+
+			return dialer(c, network, address)
+		}))
+	}
+
+	return grpc.Dial(target, opts...)
+}
+
+func parseDialTarget(target string) (string, string) {
+	network := "tcp"
+
+	// unix://absolute
+	if strings.Contains(target, ":/") {
+		uri, err := url.Parse(target)
+		if err != nil {
+			return network, target
+		}
+
+		if uri.Path == "" {
+			return uri.Scheme, uri.Host
+		}
+		return uri.Scheme, uri.Path
+	}
+
+	// unix:relative-path
+	if network, path, found := strings.Cut(target, ":"); found {
+		return network, path
+	}
+
+	// tcp://target
+	return network, target
 }
 
 func (c *Client) Init(ctx context.Context, config []byte) error {
