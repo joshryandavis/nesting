@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -12,14 +11,16 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"gitlab.com/ajwalker/nesting/api/internal/proto"
 	"gitlab.com/ajwalker/nesting/hypervisor"
 )
 
 var (
-	errAlreadyInitialized = errors.New("already initialized")
-	errNotInitialized     = errors.New("not initialized")
+	ErrAlreadyInitialized = status.Error(codes.FailedPrecondition, "already initialized")
+	ErrNotInitialized     = status.Error(codes.FailedPrecondition, "not initialized")
 )
 
 type server struct {
@@ -35,7 +36,7 @@ func (s *server) Init(ctx context.Context, req *proto.InitRequest) (*proto.InitR
 	defer s.mu.Unlock()
 
 	if s.inited {
-		return nil, errAlreadyInitialized
+		return nil, ErrAlreadyInitialized
 	}
 
 	err := s.hv.Init(ctx, req.Config)
@@ -51,7 +52,7 @@ func (s *server) Shutdown(ctx context.Context, _ *proto.ShutdownRequest) (*proto
 	defer s.mu.Unlock()
 
 	if !s.inited {
-		return nil, errNotInitialized
+		return nil, ErrAlreadyInitialized
 	}
 
 	err := s.hv.Shutdown(ctx)
@@ -64,7 +65,7 @@ func (s *server) Shutdown(ctx context.Context, _ *proto.ShutdownRequest) (*proto
 
 func (s *server) Create(ctx context.Context, req *proto.CreateRequest) (*proto.VirtualMachine, error) {
 	if !s.initialized() {
-		return nil, errNotInitialized
+		return nil, ErrNotInitialized
 	}
 
 	vm, err := s.hv.Create(ctx, req.Name)
@@ -81,7 +82,7 @@ func (s *server) Create(ctx context.Context, req *proto.CreateRequest) (*proto.V
 
 func (s *server) Delete(ctx context.Context, req *proto.DeleteRequest) (*proto.DeleteResponse, error) {
 	if !s.initialized() {
-		return nil, errNotInitialized
+		return nil, ErrNotInitialized
 	}
 
 	return &proto.DeleteResponse{}, s.hv.Delete(ctx, req.Id)
@@ -89,7 +90,7 @@ func (s *server) Delete(ctx context.Context, req *proto.DeleteRequest) (*proto.D
 
 func (s *server) List(ctx context.Context, req *proto.ListRequest) (*proto.ListResponse, error) {
 	if !s.initialized() {
-		return nil, errNotInitialized
+		return nil, ErrNotInitialized
 	}
 
 	vms, err := s.hv.List(ctx)
