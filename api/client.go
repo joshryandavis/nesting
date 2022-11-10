@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"gitlab.com/ajwalker/nesting/api/internal/proto"
-	"gitlab.com/ajwalker/nesting/hypervisor"
+	"gitlab.com/gitlab-org/fleeting/nesting/api/internal/proto"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
 )
 
 type Client struct {

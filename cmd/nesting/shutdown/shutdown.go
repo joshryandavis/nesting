@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 
-	"gitlab.com/ajwalker/nesting/api"
+	"gitlab.com/gitlab-org/fleeting/nesting/api"
 )
 
 type shutdownCmd struct {

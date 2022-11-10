@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/ajwalker/nesting/hypervisor"
-	"gitlab.com/ajwalker/nesting/hypervisor/internal/hvutil"
-	"gitlab.com/ajwalker/nesting/hypervisor/tart/internal/control"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/internal/hvutil"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/tart/internal/control"
 )
 
 const (

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/ajwalker/nesting/hypervisor/parallels/internal/control"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/parallels/internal/control"
 )
 
 var ErrNoNetworkAvailable = errors.New("no network available")

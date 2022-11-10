@@ -40,7 +40,7 @@ import (
 	"fmt"
 	"context"
 
-	"gitlab.com/ajwalker/nesting/api"
+	"gitlab.com/gitlab-org/fleeting/nesting/api"
 )
 
 func Example(ctx context.Context) {

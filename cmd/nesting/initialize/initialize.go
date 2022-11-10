@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.com/ajwalker/nesting/api"
+	"gitlab.com/gitlab-org/fleeting/nesting/api"
 )
 
 type initializeCmd struct {

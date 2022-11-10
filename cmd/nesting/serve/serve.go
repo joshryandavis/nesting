@@ -7,10 +7,10 @@ import (
 	"os"
 	"runtime"
 
-	"gitlab.com/ajwalker/nesting/api"
-	"gitlab.com/ajwalker/nesting/hypervisor"
-	"gitlab.com/ajwalker/nesting/hypervisor/parallels"
-	"gitlab.com/ajwalker/nesting/hypervisor/tart"
+	"gitlab.com/gitlab-org/fleeting/nesting/api"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/parallels"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/tart"
 )
 
 type serveCmd struct {

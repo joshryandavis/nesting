@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"gitlab.com/ajwalker/nesting/api"
+	"gitlab.com/gitlab-org/fleeting/nesting/api"
 )
 
 type listCmd struct {

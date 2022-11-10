@@ -8,12 +8,12 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.com/ajwalker/nesting/cmd/nesting/create"
-	"gitlab.com/ajwalker/nesting/cmd/nesting/delete"
-	"gitlab.com/ajwalker/nesting/cmd/nesting/initialize"
-	"gitlab.com/ajwalker/nesting/cmd/nesting/list"
-	"gitlab.com/ajwalker/nesting/cmd/nesting/serve"
-	"gitlab.com/ajwalker/nesting/cmd/nesting/shutdown"
+	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/create"
+	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/delete"
+	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/initialize"
+	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/list"
+	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/serve"
+	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/shutdown"
 )
 
 type Command interface {

@@ -1,4 +1,4 @@
-module gitlab.com/ajwalker/nesting
+module gitlab.com/gitlab-org/fleeting/nesting
 
 go 1.18
 
