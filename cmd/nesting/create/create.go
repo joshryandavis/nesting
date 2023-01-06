@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strconv"
 
 	"gitlab.com/gitlab-org/fleeting/nesting/api"
 )
@@ -19,7 +20,7 @@ func New() *createCmd {
 }
 
 func (cmd *createCmd) Command() (*flag.FlagSet, string) {
-	return cmd.fs, "<image name>"
+	return cmd.fs, "<image name> [<slot number>]"
 }
 
 func (cmd *createCmd) Execute(ctx context.Context) error {
@@ -35,12 +36,25 @@ func (cmd *createCmd) Execute(ctx context.Context) error {
 	client := api.New(conn)
 	defer client.Close()
 
-	vm, err := client.Create(ctx, cmd.fs.Args()[0])
+	var slot *int32
+	if len(cmd.fs.Args()) >= 2 {
+		i, err := strconv.Atoi(cmd.fs.Args()[1])
+		if err != nil {
+			return err
+		}
+		s := int32(i)
+		slot = &s
+	}
+
+	vm, stompedVmId, err := client.Create(ctx, cmd.fs.Args()[0], slot)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println(vm.GetId(), vm.GetName(), vm.GetAddr())
+	if stompedVmId != nil {
+		fmt.Printf("stomped vm id %q\n", *stompedVmId)
+	}
 
 	return nil
 }

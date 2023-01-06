@@ -27,6 +27,7 @@ type server struct {
 	hv     hypervisor.Hypervisor
 	mu     sync.Mutex
 	inited bool
+	slots  map[int32]string
 
 	proto.UnimplementedNestingServer
 }
@@ -63,9 +64,19 @@ func (s *server) Shutdown(ctx context.Context, _ *proto.ShutdownRequest) (*proto
 	return &proto.ShutdownResponse{}, err
 }
 
-func (s *server) Create(ctx context.Context, req *proto.CreateRequest) (*proto.VirtualMachine, error) {
+func (s *server) Create(ctx context.Context, req *proto.CreateRequest) (*proto.CreateResponse, error) {
 	if !s.initialized() {
 		return nil, ErrNotInitialized
+	}
+
+	slotsInUse := req.Slot != nil
+	var stompedVmId *string
+	if slotsInUse {
+		id, err := s.clearSlot(ctx, *req.Slot)
+		if err != nil {
+			return nil, err
+		}
+		stompedVmId = id
 	}
 
 	vm, err := s.hv.Create(ctx, req.Name)
@@ -73,10 +84,17 @@ func (s *server) Create(ctx context.Context, req *proto.CreateRequest) (*proto.V
 		return nil, err
 	}
 
-	return &proto.VirtualMachine{
-		Id:   vm.GetId(),
-		Name: vm.GetName(),
-		Addr: vm.GetAddr(),
+	if slotsInUse {
+		s.slots[*req.Slot] = vm.GetId()
+	}
+
+	return &proto.CreateResponse{
+		Vm: &proto.VirtualMachine{
+			Id:   vm.GetId(),
+			Name: vm.GetName(),
+			Addr: vm.GetAddr(),
+		},
+		StompedVmId: stompedVmId,
 	}, nil
 }
 
@@ -85,7 +103,18 @@ func (s *server) Delete(ctx context.Context, req *proto.DeleteRequest) (*proto.D
 		return nil, ErrNotInitialized
 	}
 
-	return &proto.DeleteResponse{}, s.hv.Delete(ctx, req.Id)
+	err := s.hv.Delete(ctx, req.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	for slot, id := range s.slots {
+		if id == req.Id {
+			delete(s.slots, slot)
+		}
+	}
+
+	return &proto.DeleteResponse{}, nil
 }
 
 func (s *server) List(ctx context.Context, req *proto.ListRequest) (*proto.ListResponse, error) {
@@ -114,6 +143,19 @@ func (s *server) initialized() bool {
 	return s.inited
 }
 
+func (s *server) clearSlot(ctx context.Context, slot int32) (*string, error) {
+	id, ok := s.slots[slot]
+	if !ok {
+		return nil, nil
+	}
+
+	if _, err := s.Delete(ctx, &proto.DeleteRequest{Id: id}); err != nil {
+		return nil, fmt.Errorf("clearing slot: %w", err)
+	}
+
+	return &id, nil
+}
+
 func Serve(ctx context.Context, hv hypervisor.Hypervisor) error {
 	socket := socketPath()
 	os.MkdirAll(filepath.Dir(socket), 0777)
@@ -126,7 +168,10 @@ func Serve(ctx context.Context, hv hypervisor.Hypervisor) error {
 	defer listener.Close()
 
 	srv := grpc.NewServer()
-	proto.RegisterNestingServer(srv, &server{hv: hv})
+	proto.RegisterNestingServer(srv, &server{
+		hv:    hv,
+		slots: make(map[int32]string),
+	})
 
 	// the service being shutdown also calls Shutdown on the hypervisor impl
 	defer func() {
