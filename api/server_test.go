@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/ajwalker/nesting/api/internal/proto"
-	"gitlab.com/ajwalker/nesting/hypervisor"
-	"gitlab.com/ajwalker/nesting/hypervisor/mocks"
+	"gitlab.com/gitlab-org/fleeting/nesting/api/internal/proto"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/mocks"
 	protobuf "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
