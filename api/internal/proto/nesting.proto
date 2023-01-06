@@ -12,6 +12,12 @@ message InitResponse {
 
 message CreateRequest {
     string name = 1;
+    optional int32 slot = 2;
+}
+
+message CreateResponse {
+    VirtualMachine vm = 1;
+    optional string stompedVmId = 2;
 }
 
 message DeleteRequest {
@@ -41,7 +47,7 @@ message VirtualMachine {
 
 service Nesting {
     rpc Init(InitRequest) returns (InitResponse);
-    rpc Create(CreateRequest) returns (VirtualMachine);
+    rpc Create(CreateRequest) returns (CreateResponse);
     rpc Delete(DeleteRequest) returns (DeleteResponse);
     rpc List(ListRequest) returns (ListResponse);
 

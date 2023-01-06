@@ -96,10 +96,12 @@ func (c *Client) Shutdown(ctx context.Context) error {
 	return err
 }
 
-func (c *Client) Create(ctx context.Context, name string) (hypervisor.VirtualMachine, error) {
-	return c.client.Create(ctx, &proto.CreateRequest{
+func (c *Client) Create(ctx context.Context, name string, slot *int32) (vm hypervisor.VirtualMachine, stompedVmId *string, err error) {
+	response, err := c.client.Create(ctx, &proto.CreateRequest{
 		Name: name,
+		Slot: slot,
 	})
+	return response.Vm, response.StompedVmId, err
 }
 
 func (c *Client) Delete(ctx context.Context, id string) error {
