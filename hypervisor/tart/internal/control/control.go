@@ -71,9 +71,7 @@ func VirtualMachineList(ctx context.Context, prefix string) ([]string, error) {
 	var fields int
 	var names []string
 	for _, line := range strings.Split(rawList, "\n") {
-		record := strings.FieldsFunc(line, func(r rune) bool {
-			return r == '\t'
-		})
+		record := strings.Fields(line)
 
 		// parse header
 		if fields == 0 {
@@ -108,22 +106,27 @@ func VirtualMachineList(ctx context.Context, prefix string) ([]string, error) {
 	return names, nil
 }
 
-func run(ctx context.Context, commands ...string) (string, error) {
-	var stdout strings.Builder
-	var stderr strings.Builder
+// testing hook
+var run func(ctx context.Context, commands ...string) (string, error)
 
-	cmd := exec.CommandContext(ctx, "tart", commands...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+func init() {
+	run = func(ctx context.Context, commands ...string) (string, error) {
+		var stdout strings.Builder
+		var stderr strings.Builder
 
-	var errExit *exec.ExitError
-	if errors.As(err, &errExit) {
-		return stdout.String(), fmt.Errorf("%s: %w (%s)", strings.Join(commands, " "), err, stderr.String())
+		cmd := exec.CommandContext(ctx, "tart", commands...)
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+
+		var errExit *exec.ExitError
+		if errors.As(err, &errExit) {
+			return stdout.String(), fmt.Errorf("%s: %w (%s)", strings.Join(commands, " "), err, stderr.String())
+		}
+		if err != nil {
+			return stdout.String(), fmt.Errorf("%s: %w", commands[0], err)
+		}
+
+		return stdout.String(), nil
 	}
-	if err != nil {
-		return stdout.String(), fmt.Errorf("%s: %w", commands[0], err)
-	}
-
-	return stdout.String(), nil
 }
