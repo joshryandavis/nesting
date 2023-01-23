@@ -101,7 +101,13 @@ func (c *Client) Create(ctx context.Context, name string, slot *int32) (vm hyper
 		Name: name,
 		Slot: slot,
 	})
-	return response.Vm, response.StompedVmId, err
+	if err != nil {
+		return nil, nil, err
+	}
+	if response == nil {
+		return nil, nil, nil
+	}
+	return response.Vm, response.StompedVmId, nil
 }
 
 func (c *Client) Delete(ctx context.Context, id string) error {

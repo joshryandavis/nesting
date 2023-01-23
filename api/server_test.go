@@ -299,12 +299,4 @@ func hvShutdown(err error) expectation {
 	}
 }
 
-func int32Ref(i int32) *int32 {
-	return &i
-}
-
-func stringRef(s string) *string {
-	return &s
-}
-
 // server.Serve is untested
