@@ -61,7 +61,7 @@ func TestCreate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			m := mocks.NewNestingClient(t)
 			tc.expect(m)
-			c := &Client{
+			c := &client{
 				client: m,
 			}
 			vm, stompedVmId, err := c.Create(context.TODO(), tc.name, tc.slot)
