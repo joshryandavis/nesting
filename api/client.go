@@ -14,17 +14,29 @@ import (
 	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
 )
 
-type Client struct {
+//go:generate mockery --name=Client --with-expecter
+type Client interface {
+	Init(ctx context.Context, config []byte) error
+	Shutdown(ctx context.Context) error
+	Create(ctx context.Context, name string, slot *int32) (vm hypervisor.VirtualMachine, stompedVmId *string, err error)
+	Delete(ctx context.Context, id string) error
+	List(ctx context.Context) ([]hypervisor.VirtualMachine, error)
+	Close() error
+}
+
+var _ Client = &client{}
+
+type client struct {
 	conn   *grpc.ClientConn
 	client proto.NestingClient
 }
 
 type Dialer func(ctx context.Context, network, address string) (net.Conn, error)
 
-func New(client *grpc.ClientConn) *Client {
-	return &Client{
-		conn:   client,
-		client: proto.NewNestingClient(client),
+func New(c *grpc.ClientConn) Client {
+	return &client{
+		conn:   c,
+		client: proto.NewNestingClient(c),
 	}
 }
 
@@ -82,7 +94,7 @@ func parseDialTarget(target string) (string, string) {
 	return network, target
 }
 
-func (c *Client) Init(ctx context.Context, config []byte) error {
+func (c *client) Init(ctx context.Context, config []byte) error {
 	_, err := c.client.Init(ctx, &proto.InitRequest{
 		Config: config,
 	})
@@ -90,13 +102,13 @@ func (c *Client) Init(ctx context.Context, config []byte) error {
 	return err
 }
 
-func (c *Client) Shutdown(ctx context.Context) error {
+func (c *client) Shutdown(ctx context.Context) error {
 	_, err := c.client.Shutdown(ctx, &proto.ShutdownRequest{})
 
 	return err
 }
 
-func (c *Client) Create(ctx context.Context, name string, slot *int32) (vm hypervisor.VirtualMachine, stompedVmId *string, err error) {
+func (c *client) Create(ctx context.Context, name string, slot *int32) (vm hypervisor.VirtualMachine, stompedVmId *string, err error) {
 	response, err := c.client.Create(ctx, &proto.CreateRequest{
 		Name: name,
 		Slot: slot,
@@ -110,7 +122,7 @@ func (c *Client) Create(ctx context.Context, name string, slot *int32) (vm hyper
 	return response.Vm, response.StompedVmId, nil
 }
 
-func (c *Client) Delete(ctx context.Context, id string) error {
+func (c *client) Delete(ctx context.Context, id string) error {
 	_, err := c.client.Delete(ctx, &proto.DeleteRequest{
 		Id: id,
 	})
@@ -118,7 +130,7 @@ func (c *Client) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-func (c *Client) List(ctx context.Context) ([]hypervisor.VirtualMachine, error) {
+func (c *client) List(ctx context.Context) ([]hypervisor.VirtualMachine, error) {
 	results, err := c.client.List(ctx, &proto.ListRequest{})
 	if err != nil {
 		return nil, err
@@ -132,6 +144,6 @@ func (c *Client) List(ctx context.Context) ([]hypervisor.VirtualMachine, error) 
 	return vms, nil
 }
 
-func (c *Client) Close() error {
+func (c *client) Close() error {
 	return c.conn.Close()
 }
