@@ -3,7 +3,6 @@
 export NAME ?= $(shell basename $(shell pwd))
 export VERSION := v$(shell cat VERSION)
 export OUT_PATH ?= out
-export CGO_ENABLED ?= 0
 
 local := $(PWD)/.local
 localBin := $(local)/bin
@@ -22,8 +21,7 @@ OS_ARCHS ?= darwin/arm64 \
             linux/amd64
 GO_LDFLAGS ?= -X $(PKG).NAME=$(NAME) -X $(PKG).VERSION=$(VERSION) \
               -X $(PKG).REVISION=$(REVISION) -X $(PKG).BUILT=$(BUILT) \
-              -X $(PKG).REFERENCE=$(REFERENCE) \
-              -w -extldflags '-static'
+              -X $(PKG).REFERENCE=$(REFERENCE)
 
 PROTOC := $(localBin)/protoc
 PROTOC_VERSION := 22.2
@@ -61,7 +59,6 @@ test: .mods
 	go test ./...
 
 .PHONY: test-race
-test-race: export CGO_ENABLED=1
 test-race: .mods
 	go test -race ./...
 
