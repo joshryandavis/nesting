@@ -1,6 +1,6 @@
 module gitlab.com/gitlab-org/fleeting/nesting
 
-go 1.18
+go 1.19
 
 require (
 	google.golang.org/grpc v1.50.0

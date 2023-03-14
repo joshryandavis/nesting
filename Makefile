@@ -5,6 +5,11 @@ export VERSION := v$(shell cat VERSION)
 export OUT_PATH ?= out
 export CGO_ENABLED ?= 0
 
+local := $(PWD)/.local
+localBin := $(local)/bin
+
+export PATH := $(localBin):$(PATH)
+
 export CHECKSUMS_FILE_NAME := release.sha256
 export CHECKSUMS_FILE := $(OUT_PATH)/$(CHECKSUMS_FILE_NAME)
 
@@ -19,6 +24,18 @@ GO_LDFLAGS ?= -X $(PKG).NAME=$(NAME) -X $(PKG).VERSION=$(VERSION) \
               -X $(PKG).REVISION=$(REVISION) -X $(PKG).BUILT=$(BUILT) \
               -X $(PKG).REFERENCE=$(REFERENCE) \
               -w -extldflags '-static'
+
+PROTOC := $(localBin)/protoc
+PROTOC_VERSION := 22.2
+
+PROTOC_GEN_GO := protoc-gen-go
+PROTOC_GEN_GO_VERSION := v1.29.1
+
+PROTOC_GEN_GO_GRPC := protoc-gen-go-grpc
+PROTOC_GEN_GO_GRPC_VERSION := v1.3.0
+
+MOCKERY := mockery
+MOCKERY_VERSION := 2.16.0
 
 build:
 	@mkdir -p $(OUT_PATH)
@@ -77,3 +94,33 @@ release:
 do-release:
 	git tag -s $(VERSION) -m "Version $(VERSION)"
 	git push origin $(VERSION)
+
+.PHONY: codegen
+codegen: dependencies
+	go generate ./...
+
+.PHONY: dependencies
+dependencies: $(PROTOC) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(MOCKERY)
+
+$(PROTOC): OS_TYPE ?= $(shell uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/osx/')
+$(PROTOC): ARCH_TYPE ?= $(shell uname -m | sed 's/arm64/aarch_64/')
+$(PROTOC): DOWNLOAD_URL = https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(OS_TYPE)-$(ARCH).zip
+$(PROTOC):
+	# Installing $(DOWNLOAD_URL) as $(PROTOC)
+	@mkdir -p "$(localBin)"
+	@curl -sL "$(DOWNLOAD_URL)" -o "$(local)/protoc.zip"
+	@unzip "$(local)/protoc.zip" -d "$(local)/"
+	@chmod +x "$(PROTOC)"
+	@rm "$(local)/protoc.zip"
+
+.PHONY: $(PROTOC_GEN_GO)
+$(PROTOC_GEN_GO):
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
+
+.PHONY: $(PROTOC_GEN_GO_GRPC)
+$(PROTOC_GEN_GO_GRPC):
+	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
+
+.PHONY: $(MOCKERY)
+$(MOCKERY):
+	go install github.com/vektra/mockery/v2@v$(MOCKERY_VERSION)
