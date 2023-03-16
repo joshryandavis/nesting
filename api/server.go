@@ -84,6 +84,9 @@ func (s *server) Create(ctx context.Context, req *proto.CreateRequest) (*proto.C
 		return nil, err
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if slotsInUse {
 		s.slots[*req.Slot] = vm.GetId()
 	}
@@ -107,6 +110,9 @@ func (s *server) Delete(ctx context.Context, req *proto.DeleteRequest) (*proto.D
 	if err != nil {
 		return nil, err
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	for slot, id := range s.slots {
 		if id == req.Id {
@@ -144,7 +150,10 @@ func (s *server) initialized() bool {
 }
 
 func (s *server) clearSlot(ctx context.Context, slot int32) (*string, error) {
+	s.mu.Lock()
 	id, ok := s.slots[slot]
+	s.mu.Unlock()
+
 	if !ok {
 		return nil, nil
 	}
