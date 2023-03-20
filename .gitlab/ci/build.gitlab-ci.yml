@@ -1,0 +1,17 @@
+binaries:
+  stage: build
+  image: golang:$GO_VERSION-alpine
+  extends:
+  - .rules:merge_request_or_release
+  - .go-cache
+  script:
+  - apk add -U git make
+  - make all
+  artifacts:
+    paths:
+    - ${OUT_PATH}/${CI_PROJECT_NAME}-*
+  parallel:
+    matrix:
+    - OS_ARCHS:
+      - darwin/arm64
+  needs: []

@@ -1,29 +1,13 @@
-include:
-  - template: Security/SAST.gitlab-ci.yml
-  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
-  - template: Jobs/Secret-Detection.gitlab-ci.yml
-
 stages:
-  - test
-  - build
+- test
+- build
+- upload
+- release
 
-test:
-  stage: test
-  image: golang:1.18-alpine
-  script:
-    - CGO_ENABLED=0 go test ./...
-
-test race:
-  stage: test
-  image: golang:1.18-bullseye
-  script:
-    - CGO_ENABLED=1 go test -race ./...
-
-build:
-  stage: build
-  image: golang:1.18-alpine
-  script:
-    - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o nesting-darwin-arm64 ./cmd/nesting
-  artifacts:
-    paths:
-      - nesting-*
+include:
+- local: /.gitlab/ci/common.gitlab-ci.yml
+- local: /.gitlab/ci/rules.gitlab-ci.yml
+- local: /.gitlab/ci/build.gitlab-ci.yml
+- local: /.gitlab/ci/test.gitlab-ci.yml
+- local: /.gitlab/ci/upload.gitlab-ci.yml
+- local: /.gitlab/ci/release.gitlab-ci.yml

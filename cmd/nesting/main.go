@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/list"
 	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/serve"
 	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/shutdown"
+	"gitlab.com/gitlab-org/fleeting/nesting/cmd/nesting/version"
 )
 
 type Command interface {
@@ -43,6 +44,7 @@ func main() {
 		create.New(),
 		delete.New(),
 		list.New(),
+		version.New(),
 	}
 
 	if len(os.Args) < 2 {
