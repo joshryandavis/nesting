@@ -13,6 +13,12 @@ test:
   script:
     - CGO_ENABLED=0 go test ./...
 
+test race:
+  stage: test
+  image: golang:1.18-bullseye
+  script:
+    - CGO_ENABLED=1 go test -race ./...
+
 build:
   stage: build
   image: golang:1.18-alpine

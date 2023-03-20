@@ -3,14 +3,18 @@ package api
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	protobuf "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"gitlab.com/gitlab-org/fleeting/nesting/api/internal/proto"
 	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
 	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/mocks"
-	protobuf "google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func TestServer(t *testing.T) {
@@ -300,3 +304,46 @@ func hvShutdown(err error) expectation {
 }
 
 // server.Serve is untested
+
+func TestConcurrentCreateCall(t *testing.T) {
+	m := mocks.NewHypervisor(t)
+	s := server{
+		hv:    m,
+		slots: make(map[int32]string),
+	}
+
+	m.EXPECT().Init(context.TODO(), []byte{}).Return(nil).Once()
+
+	resp, err := s.Init(context.TODO(), &proto.InitRequest{Config: []byte{}})
+	require.NoError(t, err)
+
+	t.Log("init resp", resp)
+
+	requestsNo := 50
+
+	runCh := make(chan struct{})
+	wg := new(sync.WaitGroup)
+
+	add := func(id int, slot *int32) {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, r chan struct{}, id int, slot *int32) {
+			defer wg.Done()
+
+			req := &proto.CreateRequest{Name: fmt.Sprintf("name-%d", id), Slot: slot}
+			vm := hypervisor.VirtualMachineInfo{Name: fmt.Sprintf("name-%d", id), Id: fmt.Sprintf("id-%d", id), Addr: fmt.Sprintf("1.1.1.%d", id)}
+
+			m.EXPECT().Create(context.TODO(), req.Name).Return(vm, err).Once()
+
+			<-r
+			s.Create(context.TODO(), req)
+		}(wg, runCh, id, slot)
+	}
+
+	m.EXPECT().Delete(context.TODO(), mock.Anything).Return(nil)
+	for i := 0; i < requestsNo; i++ {
+		add(i, int32Ref(0))
+	}
+
+	close(runCh)
+	wg.Wait()
+}
