@@ -4,6 +4,7 @@ import (
 	"context"
 )
 
+//go:generate mockery --name=Hypervisor --with-expecter
 type Hypervisor interface {
 	Init(ctx context.Context, config []byte) error
 	Shutdown(ctx context.Context) error
