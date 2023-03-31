@@ -25,7 +25,7 @@ func VirtualMachineCreate(ctx context.Context, opts CreateOptions) (func(), erro
 
 	dctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		_, err := run(dctx, "run", opts.Id, "--no-graphics", "--with-softnet")
+		_, err := run(dctx, "run", opts.Id, "--no-graphics", "--net-softnet")
 		errCh <- err
 	}()
 

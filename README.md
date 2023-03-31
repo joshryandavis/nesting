@@ -10,7 +10,7 @@ pre-configured Virtual Machines intended for isolated and short-lived workloads.
 
 ### MacOS Host
 
-- Tart (m1)
+- Tart (m1; supporting version 0.31.0 and newer)
 - Parallels (intel)
 
 ## Usage
