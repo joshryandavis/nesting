@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/internal/hvutil"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/Code-Hex/vz/v3"
@@ -43,8 +44,6 @@ var errVirtualMachineStopped = errors.New("virtual machine stopped")
 // VirtualMachineConfig is an indivual VM's configuration, this is modelled after
 // the config Tart uses.
 type VirtualMachineConfig struct {
-	id string
-
 	Version       int    `json:"version"`
 	MemorySize    uint64 `json:"memorySize"`
 	Arch          string `json:"arch"`
@@ -104,7 +103,12 @@ func (hv *VirtualizationFramework) Shutdown(ctx context.Context) error {
 }
 
 func (hv *VirtualizationFramework) Create(ctx context.Context, name string) (vm hypervisor.VirtualMachine, err error) {
-	cfg, err := hv.cloneVM(ctx, name)
+	id, err := hvutil.UniqueID()
+	if err != nil {
+		return nil, fmt.Errorf("generating unique id: %w", err)
+	}
+
+	cfg, err := hv.cloneVM(ctx, id, name)
 	if err != nil {
 		return nil, fmt.Errorf("cloning vm: %w", err)
 	}
@@ -115,7 +119,7 @@ func (hv *VirtualizationFramework) Create(ctx context.Context, name string) (vm 
 	}
 
 	auxStorage, err := vz.NewMacAuxiliaryStorage(
-		filepath.Join(hv.cfg.WorkingDirectory, cfg.id, "nvram.bin"),
+		filepath.Join(hv.cfg.WorkingDirectory, id, "nvram.bin"),
 		vz.WithCreatingMacAuxiliaryStorage(hardwareModel),
 	)
 	if err != nil {
@@ -158,7 +162,7 @@ func (hv *VirtualizationFramework) Create(ctx context.Context, name string) (vm 
 	vzVMCfg.SetPlatformVirtualMachineConfiguration(platformCfg)
 
 	diskImageAttachment, err := vz.NewDiskImageStorageDeviceAttachmentWithCacheAndSync(
-		filepath.Join(hv.cfg.WorkingDirectory, cfg.id, "disk.img"),
+		filepath.Join(hv.cfg.WorkingDirectory, id, "disk.img"),
 		false,
 		vz.DiskImageCachingModeAutomatic,
 		vz.DiskImageSynchronizationModeNone,
@@ -228,17 +232,17 @@ func (hv *VirtualizationFramework) Create(ctx context.Context, name string) (vm 
 	}
 
 	hv.mu.Lock()
-	hv.vms[cfg.id] = virtualMachine{
-		id:       cfg.id,
-		addr:     addr,
+	hv.vms[id] = virtualMachine{
+		id:       id,
 		name:     name,
+		addr:     addr,
 		vm:       vzvm,
 		shutdown: wg.Wait,
 	}
 	hv.mu.Unlock()
 
 	return hypervisor.VirtualMachineInfo{
-		Id:   cfg.id,
+		Id:   id,
 		Name: name,
 		Addr: addr,
 	}, nil

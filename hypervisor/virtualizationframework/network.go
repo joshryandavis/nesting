@@ -42,6 +42,7 @@ func newLinkDevice(network *vmnet.Network) (*vmnet.LinkDevice, *vz.MACAddress, i
 
 	dev, err := network.NewLinkDevice(mac.HardwareAddr(),
 		vmnet.WithTCPIncomingForward(port, 22),
+		vmnet.WithSendBufferSize(1024*1024),
 	)
 
 	return dev, mac, port, err
