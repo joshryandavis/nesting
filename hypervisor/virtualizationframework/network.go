@@ -10,6 +10,7 @@ import (
 	vmnet "github.com/Code-Hex/gvisor-vmnet"
 	"github.com/Code-Hex/vz/v3"
 	"golang.org/x/net/route"
+	"golang.org/x/sys/unix"
 )
 
 var portMu sync.Mutex
@@ -41,10 +42,13 @@ func newLinkDevice(network *vmnet.Network) (*vmnet.LinkDevice, *vz.MACAddress, i
 	port := ln.Addr().(*net.TCPAddr).Port
 	ln.Close()
 
-	dev, err := network.NewLinkDevice(mac.HardwareAddr(),
-		vmnet.WithTCPIncomingForward(port, 22),
-		vmnet.WithSendBufferSize(1024*1024),
-	)
+	opts := []vmnet.LinkDeviceOpts{vmnet.WithTCPIncomingForward(port, 22)}
+	sendspace, err := unix.SysctlUint32("net.inet.tcp.sendspace")
+	if err == nil {
+		opts = append(opts, vmnet.WithSendBufferSize(int(sendspace)))
+	}
+
+	dev, err := network.NewLinkDevice(mac.HardwareAddr(), opts...)
 
 	return dev, mac, port, err
 }
@@ -55,7 +59,13 @@ func createNetworkDeviceConfiguration(cfg *VirtualMachineConfig) (*vz.VirtioNetw
 		mtu = getDefaultGatewayInterfaceMTU()
 	}
 
-	network, err := vmnet.New("192.168.127.0/24", vmnet.WithMTU(uint32(mtu)))
+	opts := []vmnet.NetworkOpts{vmnet.WithMTU(uint32(mtu))}
+	recvspace, err := unix.SysctlUint32("net.inet.tcp.recvspace")
+	if err == nil {
+		opts = append(opts, vmnet.WithTCPReceiveBufferSize(int(recvspace)))
+	}
+
+	network, err := vmnet.New("192.168.127.0/24", opts...)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("creating network: %w", err)
 	}
@@ -76,10 +86,7 @@ func createNetworkDeviceConfiguration(cfg *VirtualMachineConfig) (*vz.VirtioNetw
 		cleanup()
 		return nil, nil, "", fmt.Errorf("creating file handle network device attachment: %w", err)
 	}
-	if err := attachment.SetMaximumTransmissionUnit(mtu); err != nil {
-		cleanup()
-		return nil, nil, "", fmt.Errorf("setting network MTU: %w", err)
-	}
+	_ = attachment.SetMaximumTransmissionUnit(mtu) // this will return an error on unsupported images
 
 	config, err := vz.NewVirtioNetworkDeviceConfiguration(attachment)
 	if err != nil {
