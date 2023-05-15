@@ -44,18 +44,15 @@ var errVirtualMachineStopped = errors.New("virtual machine stopped")
 // VirtualMachineConfig is an indivual VM's configuration, this is modelled after
 // the config Tart uses.
 type VirtualMachineConfig struct {
-	Version       int    `json:"version"`
+	// fields supported from Tart config
 	MemorySize    uint64 `json:"memorySize"`
-	Arch          string `json:"arch"`
 	OS            string `json:"os"`
 	HardwareModel []byte `json:"hardwareModel"`
 	CPUCount      uint   `json:"cpuCount"`
-	Display       struct {
-		Width  int `json:"width"`
-		Height int `json:"height"`
-	} `json:"display"`
-	ECID       []byte `json:"ecid"`
-	MacAddress string `json:"macAddress"`
+	ECID          []byte `json:"ecid"`
+
+	// new fields
+	MTU int `json:"mtu"`
 }
 
 func New(config []byte) (*VirtualizationFramework, error) {
@@ -185,7 +182,7 @@ func (hv *VirtualizationFramework) Create(ctx context.Context, name string) (vm 
 
 	vzVMCfg.SetSocketDevicesVirtualMachineConfiguration([]vz.SocketDeviceConfiguration{socketDeviceCfg})
 
-	networkDeviceConfig, cleanup, addr, err := createNetworkDeviceConfiguration()
+	networkDeviceConfig, cleanup, addr, err := createNetworkDeviceConfiguration(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("creating network device config: %w", err)
 	}
