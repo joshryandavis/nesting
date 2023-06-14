@@ -110,32 +110,57 @@ func (hv *VirtualizationFramework) Create(ctx context.Context, name string) (vm 
 		return nil, fmt.Errorf("cloning vm: %w", err)
 	}
 
-	hardwareModel, err := vz.NewMacHardwareModelWithData(cfg.HardwareModel)
-	if err != nil {
-		return nil, fmt.Errorf("creating hardware model: %w", err)
-	}
-
-	auxStorage, err := vz.NewMacAuxiliaryStorage(
-		filepath.Join(hv.cfg.WorkingDirectory, id, "nvram.bin"),
-		vz.WithCreatingMacAuxiliaryStorage(hardwareModel),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("creating auxiliary storage: %w", err)
-	}
-
-	machineIdentifier, err := vz.NewMacMachineIdentifierWithData(cfg.ECID)
-	if err != nil {
-		return nil, fmt.Errorf("creating machine identifier: %w", err)
-	}
-
 	var bootloader vz.BootLoader
+	var platformCfg vz.PlatformConfiguration
 	if cfg.OS == "darwin" {
 		bootloader, err = vz.NewMacOSBootLoader()
+		if err != nil {
+			return nil, fmt.Errorf("creating macos bootloader: %w", err)
+		}
+
+		hardwareModel, err := vz.NewMacHardwareModelWithData(cfg.HardwareModel)
+		if err != nil {
+			return nil, fmt.Errorf("creating hardware model: %w", err)
+		}
+
+		machineIdentifier, err := vz.NewMacMachineIdentifierWithData(cfg.ECID)
+		if err != nil {
+			return nil, fmt.Errorf("creating machine identifier: %w", err)
+		}
+
+		auxStorage, err := vz.NewMacAuxiliaryStorage(filepath.Join(hv.cfg.WorkingDirectory, id, "nvram.bin"), vz.WithCreatingMacAuxiliaryStorage(hardwareModel))
+		if err != nil {
+			return nil, fmt.Errorf("creating auxiliary storage: %w", err)
+		}
+
+		platformCfg, err = vz.NewMacPlatformConfiguration(
+			vz.WithMacHardwareModel(hardwareModel),
+			vz.WithMacMachineIdentifier(machineIdentifier),
+			vz.WithMacAuxiliaryStorage(auxStorage),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("creating platform configuration: %w", err)
+		}
 	} else {
-		bootloader, err = vz.NewEFIBootLoader()
-	}
-	if err != nil {
-		return nil, fmt.Errorf("creating bootloader: %w", err)
+		variableStore, err := vz.NewEFIVariableStore(filepath.Join(hv.cfg.WorkingDirectory, id, "nvram.bin"))
+		if err != nil {
+			return nil, fmt.Errorf("creating efi variable store: %w", err)
+		}
+
+		bootloader, err = vz.NewEFIBootLoader(vz.WithEFIVariableStore(variableStore))
+		if err != nil {
+			return nil, fmt.Errorf("creating efi bootloader: %w", err)
+		}
+
+		machineIdentifier, err := vz.NewGenericMachineIdentifier()
+		if err != nil {
+			return nil, fmt.Errorf("creating machine identifier: %w", err)
+		}
+
+		platformCfg, err = vz.NewGenericPlatformConfiguration(vz.WithGenericMachineIdentifier(machineIdentifier))
+		if err != nil {
+			return nil, fmt.Errorf("creating platform configuration: %w", err)
+		}
 	}
 
 	vzVMCfg, err := vz.NewVirtualMachineConfiguration(
@@ -145,15 +170,6 @@ func (hv *VirtualizationFramework) Create(ctx context.Context, name string) (vm 
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating virtual machine configuration: %w", err)
-	}
-
-	platformCfg, err := vz.NewMacPlatformConfiguration(
-		vz.WithMacAuxiliaryStorage(auxStorage),
-		vz.WithMacHardwareModel(hardwareModel),
-		vz.WithMacMachineIdentifier(machineIdentifier),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("creating platform configuration: %w", err)
 	}
 
 	vzVMCfg.SetPlatformVirtualMachineConfiguration(platformCfg)
