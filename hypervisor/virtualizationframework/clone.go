@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/klauspost/compress/zstd"
+	"golang.org/x/sys/unix"
 )
 
 func (hv *VirtualizationFramework) cloneVM(ctx context.Context, id, name string) (cfg *VirtualMachineConfig, err error) {
@@ -55,6 +56,11 @@ func extractFromDisk(imageDir, workingDir string) error {
 	for _, pathname := range []string{"disk.img", "nvram.bin"} {
 		srcpath := filepath.Join(imageDir, pathname)
 		dstpath := filepath.Join(workingDir, pathname)
+
+		// use the more efficient clonefile is possible: this will error if cross-device.
+		if err := unix.Clonefile(srcpath, dstpath, unix.CLONE_NOFOLLOW); err == nil {
+			continue
+		}
 
 		src, err := os.Open(srcpath)
 		if err != nil {
