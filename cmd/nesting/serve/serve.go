@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor"
 	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/parallels"
 	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/tart"
+	"gitlab.com/gitlab-org/fleeting/nesting/hypervisor/virtualizationframework"
 )
 
 type serveCmd struct {
@@ -63,6 +64,12 @@ func (cmd *serveCmd) Execute(ctx context.Context) error {
 
 	case "tart":
 		hv, err = tart.New(config)
+		if err != nil {
+			return err
+		}
+
+	case "virtualizationframework":
+		hv, err = virtualizationframework.New(config)
 		if err != nil {
 			return err
 		}

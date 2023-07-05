@@ -15,10 +15,6 @@ test:
 
 test-race:
   stage: test
-  # `-race` flag for `go test` requires that CGO_ENABLED=1 is set and that a proper
-  # gcc toolchain is prepared. Basing on our experience from gitlab-runner repo, it'secrets:
-  # just easier to switch to a debian-based Go image for this kind of test jobs. While
-  # we keep the rest of jobs using the alpine-based images to make them slightly faster.
   image: golang:$GO_VERSION-bullseye
   extends:
   - .rules:merge_request_or_release
