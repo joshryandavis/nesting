@@ -5,6 +5,7 @@ upload-binaries:
   - .rules:upload
   dependencies:
   - binaries
+  - binaries darwin/arm64
   script:
   - apk add curl gnupg make
   - make upload-release
