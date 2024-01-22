@@ -4,6 +4,7 @@ package virtualizationframework
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -53,6 +54,7 @@ func (hv *VirtualizationFramework) cloneVM(ctx context.Context, id, name string)
 }
 
 func extractFromDisk(imageDir, workingDir string) error {
+	var buf []byte
 	for _, pathname := range []string{"disk.img", "nvram.bin"} {
 		srcpath := filepath.Join(imageDir, pathname)
 		dstpath := filepath.Join(workingDir, pathname)
@@ -60,6 +62,10 @@ func extractFromDisk(imageDir, workingDir string) error {
 		// use the more efficient clonefile is possible: this will error if cross-device.
 		if err := unix.Clonefile(srcpath, dstpath, unix.CLONE_NOFOLLOW); err == nil {
 			continue
+		}
+
+		if len(buf) == 0 { // lazily initialize buf size when needed
+			buf = make([]byte, len(sparseBlock))
 		}
 
 		src, err := os.Open(srcpath)
@@ -74,7 +80,7 @@ func extractFromDisk(imageDir, workingDir string) error {
 		}
 		defer dst.Close()
 
-		if _, err := io.Copy(dst, src); err != nil {
+		if err := sparseCopyBuffer(dst, src, buf); err != nil {
 			return fmt.Errorf("copying %s -> %s: %w", srcpath, dstpath, err)
 		}
 
@@ -95,6 +101,7 @@ func extractFromArchive(r io.Reader, workingDir string) error {
 	defer zr.Close()
 
 	tr := tar.NewReader(zr)
+	buf := make([]byte, len(sparseBlock))
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
@@ -112,7 +119,7 @@ func extractFromArchive(r io.Reader, workingDir string) error {
 		}
 		defer dst.Close()
 
-		if _, err := io.Copy(dst, tr); err != nil {
+		if err := sparseCopyBuffer(dst, tr, buf); err != nil {
 			return fmt.Errorf("copying %s -> %s: %w", hdr.Name, dstpath, err)
 		}
 		if err := dst.Close(); err != nil {
@@ -121,4 +128,33 @@ func extractFromArchive(r io.Reader, workingDir string) error {
 	}
 
 	return nil
+}
+
+var sparseBlock = make([]byte, 64*1024)
+
+func sparseCopyBuffer(dst io.WriterAt, src io.Reader, buf []byte) error {
+	if buf == nil || len(buf) < len(sparseBlock) {
+		panic("sparse copy buffer cannot be smaller than the sparse block size")
+	}
+
+	var offset int64
+
+	for {
+		n, err := src.Read(buf)
+		if !bytes.Equal(buf[:n], sparseBlock[:n]) {
+			if _, err := dst.WriteAt(buf[:n], offset); err != nil {
+				return err
+			}
+		}
+
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+
+			return err
+		}
+
+		offset += int64(n)
+	}
 }
