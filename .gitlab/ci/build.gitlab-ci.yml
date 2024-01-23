@@ -26,7 +26,7 @@ binaries darwin/arm64:
   variables:
     OS_ARCHS: darwin/arm64
   script:
-  - asdf plugin-add golang https://github.com/kennyp/asdf-golang.git
+  - asdf plugin-add golang https://github.com/kennyp/asdf-golang.git || true
   - asdf install golang $GO_VERSION
   - make all
   - codesign --entitlements vz.entitlements -s - out/nesting-darwin-arm64

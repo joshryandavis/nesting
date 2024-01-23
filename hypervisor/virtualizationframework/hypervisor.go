@@ -295,6 +295,12 @@ func (hv *VirtualizationFramework) Delete(ctx context.Context, id string) error 
 			}
 		}
 
+		// check state to see if explicitly stopped
+		state := vm.vm.State()
+		if state == vz.VirtualMachineStateStopping || state == vz.VirtualMachineStateStopped {
+			break
+		}
+
 		time.Sleep(time.Second)
 	}
 
